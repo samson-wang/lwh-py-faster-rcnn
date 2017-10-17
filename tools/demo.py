@@ -28,8 +28,10 @@ matplotlib.use('Agg')
 # matplotlib.use('pdf')
 import matplotlib.pyplot as plt
 
-CLASSES = ('__background__', 'handbags', 'shoes', 'up_body', 'down_body', \
-         'all_body', 'boots', 'bra', 'underwear', 'skirt', 'dress', 'makeup')
+#CLASSES = ('__background__', 'handbags', 'shoes', 'up_body', 'down_body', \
+#         'all_body', 'boots', 'bra', 'underwear', 'skirt', 'dress', 'makeup')
+CLASSES = ('__background__', 'shampoo')
+CLASSES = ('__background__', 'box', 'bag', 'tank')
 
 # METHOD #1: OpenCV, NumPy, and urllib
 def url_to_image(url):
@@ -113,7 +115,7 @@ def bag_demo_double(net, image_name, cat_ids, bboxes):
     colors = plt.cm.hsv(np.linspace(0, 1, len(CLASSES))).tolist()
     ax1.imshow(im)
     currentAxis = plt.gca()    
-    CONF_THRESH = 0.9
+    CONF_THRESH = 0.5
     NMS_THRESH = 0.3
     for cls_ind, cls in enumerate(CLASSES[1:]):
         cls_ind += 1 # because we skipped background
@@ -185,6 +187,17 @@ def parse_args():
     parser.add_argument('--cpu', dest='cpu_mode',
                         help='Use CPU mode (overrides --gpu)',
                         action='store_true')
+    parser.add_argument('--proto', dest='prototxt')
+    parser.add_argument('--model', dest='caffemodel')
+    parser.add_argument('--json_file', dest='json_file')
+    parser.add_argument('--max_size', dest='max_size',
+                        default=1000, type=int,
+                        help='Max size of image before sent to network, default is 1000')
+    parser.add_argument('--scale', dest='scale',
+                        default=600, type=int,
+                        help='scale size of image, default is 600')
+    parser.add_argument('--thresh', dest='thresh',
+                        default=0.5, type=float)
     # parser.add_argument('--net', dest='demo_net', help='Network to use [vgg16]',
     #                     choices=NETS.keys(), default='vgg16')
 
@@ -232,16 +245,17 @@ def load_images(test_path):
     return test_index            
 
 if __name__ == '__main__':
-    cfg.TEST.HAS_RPN = True  # Use RPN for proposals
-
     args = parse_args()
+    cfg.TEST.HAS_RPN = True  # Use RPN for proposals
+    cfg.TEST.SCALES = (args.scale,)
+    cfg.TEST.MAX_SIZE = args.max_size
 
     # prototxt = '/data/home/liuhuawei/detection/dev-py-faster-rcnn/models/pascal_voc/VGG16/faster_rcnn_end2end/test_backup.prototxt'
     # caffemodel = '/data/home/liuhuawei/detection/py-faster-rcnn/output/faster_rcnn_end2end/backup/vgg16_faster_rcnn_iter_30000.caffemodel'
-    prototxt = 'models/all_categories_0307/VGG16/faster_rcnn_end2end/test.prototxt'
+    prototxt = args.prototxt
     # prototxt = 'models/all_categories/ResNet101/faster_rcnn_end2end/test.prototxt'
     # caffemodel = 'output/faster_rcnn_end2end/2007_trainval_all_categories/ResNet101_all_categories_frcnn_iter_100000.caffemodel'
-    caffemodel = 'output/faster_rcnn_end2end/2007_trainval_all_categories_0307/VGG16_all_categories_0307_frcnn_iter_300000.caffemodel'    
+    caffemodel = args.caffemodel
     # prototxt = '/data/home/liuhuawei/detection/dev-py-faster-rcnn/models/pascal_voc/VGG16/faster_rcnn_end2end/test_with_only_foveal.prototxt'
     # caffemodel = '/data/home/liuhuawei/detection/dev-py-faster-rcnn/output/faster_rcnn_end2end/voc_2007_trainval/only_foveal/vgg16_faster_rcnn_iter_60000.caffemodel'    
 
@@ -266,7 +280,7 @@ if __name__ == '__main__':
         _, _= im_detect(net, im)
     #####################    
     import json
-    json_file = '/data/home/liuhuawei/detection/input/clothing_all_cats_test_0307.json'
+    json_file = args.json_file
     with open(json_file, 'rb') as f:
         data = json.load(f)
     images = data['images']
@@ -295,7 +309,9 @@ if __name__ == '__main__':
         assert bboxes.shape[0] == len(img_ids)
 
         abspath = _index_to_path[img_index]
+        print abspath
         bag_demo_double(net, abspath, cat_ids, bboxes)
+        #break
         # bag_demo(net, abspath)
         # bag_demo_origin(abspath, cat_ids, bboxes)        
 
